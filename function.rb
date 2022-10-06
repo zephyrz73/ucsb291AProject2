@@ -8,8 +8,16 @@ require 'bundler/setup' #to do remove
 def main(event:, context:)
   # You shouldn't need to use context, but its fields are explained here:
   # https://docs.aws.amazon.com/lambda/latest/dg/ruby-context.html
-  if event['path'] == '/' && event['httpMethod'] == 'GET'
-    get(body: event)
+  if event['path'] == '/' || event['path'] == '/token'
+    if event['path'] == '/' && event['httpMethod'] == 'GET'
+      get(body: event)
+    elsif event['path'] == '/token' && event['httpMethod'] == 'POST'
+      post(body: event)
+    else
+      response(body: {'error': 'wrong http method'}, status: 405)
+    end
+  else
+    response(body: {'error': 'resource not found'}, status: 404)
   end
   #response(body: event, status: 200)
 end
@@ -30,14 +38,35 @@ def get(body: nil)
     token = JWT.decode encoded_token, ENV['JWT_SECRET'], 'HS256'
     if token[0]['exp'].to_i < Time.now.to_i
       response(body: {'error': 'token expired'}, status: 401)
+    elsif token[0]['nbf'].to_i > Time.now.to_i
+      response(body: {'error': 'token not yet valid'}, status: 401)
     else
-      if token[0]['nbf'].to_i > Time.now.to_i
-        response(body: {'error': 'token not yet valid'}, status: 401)
-      else
-        response(body: token[0]['data'], status: 200)
-      end
+      response(body: token[0]['data'], status: 200)
     end
   end
+end
+
+def post(body: nil)
+  if body['headers']['Content-Type'] != 'application/json'
+    response(body: {'error': 'response type is not application/json'}, status: 415)
+  elsif !valid_json?(body['body'])
+    resonse(body: {'error': 'not a valid json'}, status: 422)
+  else
+    uncoded_token = {
+      data: body['body'],
+      exp: Time.now.to_i + 5,
+      nbf: Time.now.to_i + 2
+    }
+    encoded_token = JWT.encode uncoded_token, ENV['JWT_SECRET'], 'HS256'
+    response(body: {"token": encoded_token}, status: 201)
+  end
+end
+
+def valid_json?(json)
+  JSON.parse(json)
+  true
+rescue JSON::ParserError => e
+  false
 end
 
 if $PROGRAM_NAME == __FILE__
