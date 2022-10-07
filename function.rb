@@ -36,6 +36,9 @@ def get(body: nil)
     response(body: {"error": "please specify auth token"}, status: 403)
   else
     begin
+      if auth.split(" ")[0] != "Bearer"
+        return response(body: {"error": "not a bearer"}, status: 403)
+      end
       encoded_token = auth.split(" ")[1]
       token = JWT.decode encoded_token, ENV['JWT_SECRET'], true, { algorithm: 'HS256' }
       response(body: token[0]["data"], status: 200)
@@ -44,7 +47,7 @@ def get(body: nil)
     rescue JWT::ExpiredSignature => exe
       response(body: {"error": exe}, status: 401)
     rescue JWT::DecodeError => e
-      response(body: {"error": "decode error"}, status: 403)
+      response(body: {"error": e}, status: 403)
     end
   end
 end
@@ -82,19 +85,19 @@ if $PROGRAM_NAME == __FILE__
   # If you run this file directly via `ruby function.rb` the following code
   # will execute. You can use the code below to help you test your functions
   # without needing to deploy first.
-  ENV['JWT_SECRET'] = 'NOTASECRET'
-  my_token = main(context: {}, event: {
-    'body' => '{"name": "bboe"}',
-    'headers' => { 'coNtEnt-tYpe' => 'application/json' },
-    'httpMethod' => 'POST',
-    'path' => '/token'
-  })
-  # Call /token
-  puts "my_token"
-  PP.pp my_token
-  encoded_tokena = JSON.parse(my_token[:body])["token"]
-  puts "encoded_tokena"
-  PP.pp encoded_tokena
+  # ENV['JWT_SECRET'] = 'NOTASECRET'
+  # my_token = main(context: {}, event: {
+  #   'body' => '{"name": "bboe"}',
+  #   'headers' => { 'coNtEnt-tYpe' => 'application/json' },
+  #   'httpMethod' => 'POST',
+  #   'path' => '/token'
+  # })
+  # # Call /token
+  # puts "my_token"
+  # PP.pp my_token
+  # encoded_tokena = JSON.parse(my_token[:body])["token"]
+  # puts "encoded_tokena"
+  # PP.pp encoded_tokena
   # PP.pp main(context: {}, event: {
   #   'body' => `1`,
   #   'headers' => { 'content-type' => 'application/json' },
@@ -114,7 +117,7 @@ if $PROGRAM_NAME == __FILE__
   puts token
   # Call /
   PP.pp main(context: {}, event: {
-               'headers' => { 'auTHOrIzation' => "Bearer #{encoded_tokena}",
+               'headers' => { 'auTHOrIzation' => "Bearer foobar",
                               'Content-Type' => 'application/json' },
                'httpMethod' => 'GET',
                'path' => '/'
