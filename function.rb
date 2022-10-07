@@ -34,14 +34,18 @@ def get(body: nil)
   if auth == nil
     response(body: {'error': 'please specify auth token'}, status: 403)
   else
-    encoded_token = auth[7..-1]
-    token = JWT.decode encoded_token, ENV['JWT_SECRET'], 'HS256'
-    if token[0]['exp'].to_i < Time.now.to_i
-      response(body: {'error': 'token expired'}, status: 401)
-    elsif token[0]['nbf'].to_i > Time.now.to_i
-      response(body: {'error': 'token not yet valid'}, status: 401)
-    else
-      response(body: token[0]['data'], status: 200)
+    begin
+      encoded_token = auth[7..-1]
+      token = JWT.decode encoded_token, ENV['JWT_SECRET'], 'HS256'
+      if token[0]['exp'].to_i < Time.now.to_i
+        response(body: {'error': 'token expired'}, status: 401)
+      elsif token[0]['nbf'].to_i > Time.now.to_i
+        response(body: {'error': 'token not yet valid'}, status: 401)
+      else
+        response(body: token[0]['data'], status: 200)
+      end
+    rescue JWT::DecodeError
+      response(body: {'error': 'decode error'}, status: 403)
     end
   end
 end
@@ -97,4 +101,10 @@ if $PROGRAM_NAME == __FILE__
                'httpMethod' => 'GET',
                'path' => '/'
              })
+  PP.pp main(context: {}, event: {
+  'headers' => { 'Authorization' => "Bearer foobar",
+                  'Content-Type' => 'application/json' },
+  'httpMethod' => 'GET',
+  'path' => '/'
+})
 end
