@@ -50,7 +50,7 @@ def post(body: nil)
   if body['headers']['Content-Type'] != 'application/json'
     response(body: {'error': 'response type is not application/json'}, status: 415)
   elsif !valid_json?(body['body'])
-    resonse(body: {'error': 'not a valid json'}, status: 422)
+    response(body: {'error': 'not a valid json'}, status: 422)
   else
     uncoded_token = {
       data: body['body'],
