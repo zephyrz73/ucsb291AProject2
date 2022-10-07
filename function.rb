@@ -56,7 +56,7 @@ def post(body: nil)
   ct_type = body['headers'][ct_wording[0]]
   if ct_type != 'application/json'
     response(body: {'error': 'response type is not application/json'}, status: 415)
-  elsif !valid_json?(body['body'].to_json)
+  elsif !valid_json?(body['body'])
     response(body: {'error': 'not a valid json'}, status: 422)
   else
     uncoded_token = {
@@ -70,6 +70,9 @@ def post(body: nil)
 end
 
 def valid_json?(json)
+  if (json == nil)
+    return false
+  end
   JSON.parse(json)
   true
 rescue JSON::ParserError => e
