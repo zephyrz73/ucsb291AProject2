@@ -43,7 +43,10 @@ def get(body: nil)
       elsif token[0]['nbf'].to_i > Time.now.to_i
         response(body: {'error': 'token not yet valid'}, status: 401)
       else
-        response(body: token[0]['data'], status: 200)
+        puts "token"
+        i = {'error': 'token not yet valid'}
+        puts i.class
+        response(body: token[0]["data"], status: 200)
       end
     rescue JWT::DecodeError
       response(body: {'error': 'decode error'}, status: 403)
