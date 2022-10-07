@@ -30,7 +30,8 @@ def response(body: nil, status: 200)
 end
 
 def get(body: nil)
-  auth = body['headers']['Authorization']
+  auth_wording = body['headers'].keys.grep(/#{"authorization"}/i)
+  auth = body['headers'][auth_wording[0]]
   if auth == nil
     response(body: {'error': 'please specify auth token'}, status: 403)
   else
@@ -51,8 +52,9 @@ def get(body: nil)
 end
 
 def post(body: nil)
-
-  if body['headers']['content-type'] != 'application/json'
+  ct_wording = body['headers'].keys.grep(/#{"content-type"}/i)
+  ct_type = body['headers'][ct_wording[0]]
+  if ct_type != 'application/json'
     response(body: {'error': 'response type is not application/json'}, status: 415)
   elsif !(body['body'].is_a?(Array) || body['body'].is_a?(Numeric) || body['body'].is_a?(Hash))
     response(body: {'error': 'not a valid json'}, status: 422)
@@ -76,7 +78,7 @@ if $PROGRAM_NAME == __FILE__
   # Call /token
   PP.pp main(context: {}, event: {
                'body' => '{"name": "bboe"}',
-               'headers' => { 'content-type' => 'application/json' },
+               'headers' => { 'coNtEnt-tYpe' => 'application/json' },
                'httpMethod' => 'POST',
                'path' => '/token'
              })
@@ -96,7 +98,7 @@ if $PROGRAM_NAME == __FILE__
   token = JWT.encode payload, ENV['JWT_SECRET'], 'HS256'
   # Call /
   PP.pp main(context: {}, event: {
-               'headers' => { 'Authorization' => "Bearer #{token}",
+               'headers' => { 'auTHOrIzation' => "Bearer #{token}",
                               'Content-Type' => 'application/json' },
                'httpMethod' => 'GET',
                'path' => '/'
