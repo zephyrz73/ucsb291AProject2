@@ -56,7 +56,7 @@ def post(body: nil)
   ct_type = body['headers'][ct_wording[0]]
   if ct_type != 'application/json'
     response(body: {'error': 'response type is not application/json'}, status: 415)
-  elsif !(body['body'].is_a?(Array) || body['body'].is_a?(Numeric) || body['body'].is_a?(Hash))
+  elsif !valid_json?(body['body'].to_json)
     response(body: {'error': 'not a valid json'}, status: 422)
   else
     uncoded_token = {
@@ -68,6 +68,14 @@ def post(body: nil)
     response(body: {"token": encoded_token}, status: 201)
   end
 end
+
+def valid_json?(json)
+  JSON.parse(json)
+  true
+rescue JSON::ParserError => e
+  false
+end
+
 
 if $PROGRAM_NAME == __FILE__
   # If you run this file directly via `ruby function.rb` the following code
@@ -82,12 +90,12 @@ if $PROGRAM_NAME == __FILE__
                'httpMethod' => 'POST',
                'path' => '/token'
              })
-  PP.pp main(context: {}, event: {
-    'body' => {"user_id": "12345"},
-    'headers' => { 'content-type' => 'application/json' },
-    'httpMethod' => 'POST',
-    'path' => '/token'
-  })
+  # PP.pp main(context: {}, event: {
+  #   'body' => `1`,
+  #   'headers' => { 'content-type' => 'application/json' },
+  #   'httpMethod' => 'POST',
+  #   'path' => '/token'
+  # })
 
   # Generate a token
   payload = {
