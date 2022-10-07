@@ -37,15 +37,13 @@ def get(body: nil)
   else
     begin
       encoded_token = auth.split(" ")[1]
-      token = JWT.decode encoded_token, ENV['JWT_SECRET'], 'HS256'
-      if token[0]["exp"].to_i < Time.now.to_i
-        response(body: {"error": "token expired"}, status: 401)
-      elsif token[0]["nbf"].to_i > Time.now.to_i
-        response(body: {"error": "token not yet valid"}, status: 401)
-      else
-        response(body: token[0]["data"], status: 200)
-      end
-    rescue JWT::DecodeError
+      token = JWT.decode encoded_token, ENV['JWT_SECRET'], true, { algorithm: 'HS256' }
+      response(body: token[0]["data"], status: 200)
+    rescue JWT::ImmatureSignature => ise
+      response(body: {"error": ise}, status: 401)
+    rescue JWT::ExpiredSignature => exe
+      response(body: {"error": exe}, status: 401)
+    rescue JWT::DecodeError => e
       response(body: {"error": "decode error"}, status: 403)
     end
   end
@@ -85,31 +83,38 @@ if $PROGRAM_NAME == __FILE__
   # will execute. You can use the code below to help you test your functions
   # without needing to deploy first.
   ENV['JWT_SECRET'] = 'NOTASECRET'
-
+  my_token = main(context: {}, event: {
+    'body' => '{"name": "bboe"}',
+    'headers' => { 'coNtEnt-tYpe' => 'application/json' },
+    'httpMethod' => 'POST',
+    'path' => '/token'
+  })
   # Call /token
-  PP.pp main(context: {}, event: {
-               'body' => '{"name": "bboe"}',
-               'headers' => { 'coNtEnt-tYpe' => 'application/json' },
-               'httpMethod' => 'POST',
-               'path' => '/token'
-             })
+  puts "my_token"
+  PP.pp my_token
+  encoded_tokena = JSON.parse(my_token[:body])["token"]
+  puts "encoded_tokena"
+  PP.pp encoded_tokena
   # PP.pp main(context: {}, event: {
   #   'body' => `1`,
   #   'headers' => { 'content-type' => 'application/json' },
   #   'httpMethod' => 'POST',
   #   'path' => '/token'
   # })
-
-  # Generate a token
+  # token_decode_arr = JWT.decode encoded_tokena,  'ASECRET', true, { algorithm: 'HS256' }
+  # PP.pp decoded_tokena
+  # # Generate a token
   payload = {
     data: { user_id: 128 },
     exp: Time.now.to_i + 1,
     nbf: Time.now.to_i
   }
   token = JWT.encode payload, ENV['JWT_SECRET'], 'HS256'
+  puts "token1"
+  puts token
   # Call /
   PP.pp main(context: {}, event: {
-               'headers' => { 'auTHOrIzation' => "Bearer #{token}",
+               'headers' => { 'auTHOrIzation' => "Bearer #{encoded_tokena}",
                               'Content-Type' => 'application/json' },
                'httpMethod' => 'GET',
                'path' => '/'
