@@ -36,16 +36,13 @@ def get(body: nil)
     response(body: {'error': 'please specify auth token'}, status: 403)
   else
     begin
-      encoded_token = auth[7..-1]
+      encoded_token = auth.split(" ")[1]
       token = JWT.decode encoded_token, ENV['JWT_SECRET'], 'HS256'
       if token[0]['exp'].to_i < Time.now.to_i
         response(body: {'error': 'token expired'}, status: 401)
       elsif token[0]['nbf'].to_i > Time.now.to_i
         response(body: {'error': 'token not yet valid'}, status: 401)
       else
-        puts "token"
-        i = {'error': 'token not yet valid'}
-        puts i.class
         response(body: token[0]["data"], status: 200)
       end
     rescue JWT::DecodeError
