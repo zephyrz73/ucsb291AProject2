@@ -51,9 +51,10 @@ def get(body: nil)
 end
 
 def post(body: nil)
-  if body['headers']['Content-Type'] != 'application/json'
+
+  if body['headers']['content-type'] != 'application/json'
     response(body: {'error': 'response type is not application/json'}, status: 415)
-  elsif body['body'] == nil || !valid_json?(body['body'])
+  elsif !(body['body'].is_a?(Array) || body['body'].is_a?(Numeric) || body['body'].is_a?(Hash))
     response(body: {'error': 'not a valid json'}, status: 422)
   else
     uncoded_token = {
@@ -66,13 +67,6 @@ def post(body: nil)
   end
 end
 
-def valid_json?(json)
-  JSON.parse(json)
-  true
-rescue JSON::ParserError => e
-  false
-end
-
 if $PROGRAM_NAME == __FILE__
   # If you run this file directly via `ruby function.rb` the following code
   # will execute. You can use the code below to help you test your functions
@@ -82,10 +76,16 @@ if $PROGRAM_NAME == __FILE__
   # Call /token
   PP.pp main(context: {}, event: {
                'body' => '{"name": "bboe"}',
-               'headers' => { 'Content-Type' => 'application/json' },
+               'headers' => { 'content-type' => 'application/json' },
                'httpMethod' => 'POST',
                'path' => '/token'
              })
+  PP.pp main(context: {}, event: {
+    'body' => {"user_id": "12345"},
+    'headers' => { 'content-type' => 'application/json' },
+    'httpMethod' => 'POST',
+    'path' => '/token'
+  })
 
   # Generate a token
   payload = {
@@ -101,10 +101,4 @@ if $PROGRAM_NAME == __FILE__
                'httpMethod' => 'GET',
                'path' => '/'
              })
-  PP.pp main(context: {}, event: {
-  'headers' => { 'Authorization' => "Bearer foobar",
-                  'Content-Type' => 'application/json' },
-  'httpMethod' => 'GET',
-  'path' => '/'
-})
 end
